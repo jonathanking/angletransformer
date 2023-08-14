@@ -22,6 +22,7 @@ class AngleTransformer(nn.Module):
     ):
         super().__init__()
         self.eps = epsilon
+        self.c_hidden = c_hidden
 
         self.linear_initial = Linear(c_s, c_hidden)
         self.linear_in = Linear(c_s, c_hidden)

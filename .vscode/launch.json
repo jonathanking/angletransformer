@@ -1,0 +1,38 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+
+        {
+            "name": "ATtrain",
+            "type": "python",
+            "request": "launch",
+            "program": "/net/pulsar/home/koes/jok120/angletransformer/train.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [ // (train_data_dir, train_alignment_dir, template_mmcif_dir, outdir)
+                "--train_data=/net/pulsar/home/koes/jok120/openfold/out/experiments/angletransformer-make-caches-50-TrainPt1/indiv_train/",
+                "--val_data=/net/pulsar/home/koes/jok120/openfold/out/experiments/angletransformer-make-caches-50-TrainPt1/indiv_val/",
+                "--experiment_name=ATdebug00",
+                "--output_dir=out/experiments/atsolo/",
+                "--batch_size=1",
+                "--num_workers=6",
+                "--wandb_notes='Debugging run for AngleTransformer.'",
+                "--wandb_tags=debug",
+                "--opt_lr=1e-4",
+                "--opt_lr_scheduling=noam",
+                "--gpus=1",
+                "--val_check_interval=100"
+                ],
+                // "justMyCode": true,
+                "env": {
+                    "CUDA_LAUNCH_BLOCKING": "1",
+                    // "CUDA_VISIBLE_DEVICES": "2",
+                    // "WANDB_MODE": "offline",
+                    "CUDA_HOME": "/opt/cuda-11.5",
+                }
+            }
+        ]
+}
