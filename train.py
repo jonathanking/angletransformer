@@ -88,7 +88,7 @@ class ATModuleLit(pl.LightningModule):
             eps=1e-6,
         )
         mode = "train" if self.training else "val"
-        on_step = mode
+        on_step = mode == "train"
         self.log(
             f"{mode}/loss",
             loss["loss"],
