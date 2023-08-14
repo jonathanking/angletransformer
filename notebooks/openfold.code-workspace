@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "../.."
+		},
+		{
+			"path": "../../../repos/sidechainnet"
+		}
+	],
+	"settings": {
+		"workspace.isHidden": true,
+		"editor.mouseWheelScrollSensitivity": 4
+	}
+}
