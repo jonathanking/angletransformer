@@ -1,0 +1,42 @@
+program: train.py
+method: bayes
+metric:
+  goal: minimize
+  name: val/sq_chi_loss
+parameters:
+  is_sweep:
+    value: 'True'
+  opt_lr_scheduling_metric:
+    value: "val/sq_chi_loss"
+  replace_sampler_ddp:
+    values: ["True", "False"]
+    distribution: categorical
+  chi_weight:
+    values: [0.05, 0.1, 0.5, 1, 2, 10]
+  activation:
+    values: ['relu', 'gelu']
+  no_blocks:
+    values: [1, 2, 4, 8, 12, 16, 32]
+  opt_name:
+    values: ['adam', 'adamw', 'sgd']
+  opt_noam_lr_factor:
+    values: [.01, .1, 1, 2, 10]
+  opt_n_warmup_steps:
+    values: [3000, 5000, 10000, 20000]
+  opt_lr_scheduling:
+    values: ["noam", "plateau", "none"]
+  no_heads:
+    values: [1, 2, 4, 8, 16, 32]
+  c_hidden:
+    values: [32, 64, 128, 256, 512, 1024, 2048]
+  dropout:
+    values: [0.01, 0.1, 0.15, 0.2]
+  opt_lr:
+    values: [0.000001, 0.00001, 0.0001, 0.001, 0.01, 0.1]
+  d_ff:
+    values: [256, 512, 1024, 2048, 4096]
+    # batch_size:
+  #   max: 2
+  #   min: 1
+  #   distribution: int_uniform
+

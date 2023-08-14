@@ -6,6 +6,9 @@ import pytorch_lightning as pl
 import pytorch_lightning.callbacks as callbacks
 import torch
 import torch.multiprocessing
+from tqdm import tqdm
+from tqdm.utils import _unicode, disp_len
+
 
 torch.multiprocessing.set_sharing_strategy("file_system")
 
@@ -221,6 +224,59 @@ class ATModuleLit(pl.LightningModule):
 
 
 def main(args):
+    if args.is_sweep:
+        default_config = {
+            "train_data": "data/train/",
+            "val_data": "data/val/",
+            "output_dir": "out/sweeps/sweep00",
+            "num_workers": 8,
+            "wandb_tags": "sweep",
+            "batch_size": 1,
+            # "gpus": 1,
+            "val_check_interval": 2500
+        }
+        # Update values from default config
+        for k, v in default_config.items():
+            setattr(args, k, v)
+        
+
+        if "SLURM_JOB_ID" in os.environ:
+            def status_printer(self, file):
+                """
+                Manage the printing and in-place updating of a line of characters.
+                Note that if the string is longer than a line, then in-place
+                updating may not work (it will print a new line at each refresh).
+                """
+                self._status_printer_counter = 0
+                fp = file
+                fp_flush = getattr(fp, 'flush', lambda: None)  # pragma: no cover
+                if fp in (sys.stderr, sys.stdout):
+                    getattr(sys.stderr, 'flush', lambda: None)()
+                    getattr(sys.stdout, 'flush', lambda: None)()
+
+                def fp_write(s):
+                    fp.write(_unicode(s))
+                    fp_flush()
+
+                last_len = [0]
+
+                def print_status(s):
+                    self._status_printer_counter += 1
+                    if self._status_printer_counter % 100 == 0:
+                        len_s = disp_len(s)
+                        fp_write(s + (' ' * max(last_len[0] - len_s, 0)) + '\n')
+                        last_len[0] = len_s
+
+                return print_status
+            tqdm.status_printer = status_printer
+
+        # args.val_check_interval = default_config["val_check_interval"]
+        # args.gpus = default_config["gpus"]
+        # args = argparse.Namespace(**default_config)
+        # args.update(default_config)
+    else:
+        default_config = None
+
     # Create model
     model = ATModuleLit(
         train_dataset_dir=args.train_data, val_dataset_dir=args.val_data, **vars(args)
@@ -240,7 +296,7 @@ def main(args):
     # Early stopping callback,
     early_stopping_callback = pl.callbacks.EarlyStopping(
         monitor="val/loss",
-        patience=20,
+        patience=args.opt_patience,
         mode="min",
         verbose=True,
     )
@@ -248,14 +304,15 @@ def main(args):
 
     # Create wandb logger
     wandb_logger = pl.loggers.WandbLogger(
-        name=args.experiment_name,
+        # name=args.experiment_name,
         save_dir=args.output_dir,
         project="angletransformer_solo01",
         notes=args.wandb_notes,
         tags=[tag for tag in args.wandb_tags.split(",") if tag]
         if args.wandb_tags
         else None,
-        group=args.experiment_name if args.experiment_name else "default_group",
+        # group=args.experiment_name if args.experiment_name else "default_group",
+        config=default_config,
         **{"entity": "koes-group"},
     )
     # MOD-JK: save config to wandb, log gradients/params
@@ -263,6 +320,13 @@ def main(args):
         wandb_logger.experiment.config.update(vars(args), allow_val_change=True)
     except AttributeError as e:
         pass
+
+    args.experiment_name = wandb_logger.experiment.name
+
+    args.output_dir = os.path.join(args.output_dir, args.experiment_name)
+        # If output_dir does not exist, create it
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
 
     my_callbacks.append(callbacks.LearningRateMonitor(logging_interval="step"))
 
@@ -281,23 +345,26 @@ def main(args):
 
 
 if __name__ == "__main__":
+    def my_bool(s):
+        """Allow bools instead of using pos/neg flags."""
+        return s != 'False'
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--train_data",
         type=str,
-        required=True,
+        required=False,
         help="Path to pickle files of training data.",
     )
     parser.add_argument(
         "--val_data",
         type=str,
-        required=True,
+        required=False,
         help="Path to pickle files of validation data.",
     )
     parser.add_argument(
-        "--experiment_name", type=str, required=True, help="Name of experiment."
+        "--experiment_name", type=str, required=False, help="Name of experiment."
     )
-    parser.add_argument("--output_dir", type=str, required=True, help="Output directory.")
+    parser.add_argument("--output_dir", type=str, required=False, help="Output directory.")
 
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size.")
     parser.add_argument(
@@ -329,7 +396,7 @@ if __name__ == "__main__":
         "--no_heads", type=int, default=4, help="Number of heads for transformer."
     )
     parser.add_argument(
-        "--activation", type=str, default="relu", help="Activation for transformer."
+        "--activation", type=str, choices=['relu', 'gelu'], default="relu", help="Activation for transformer."
     )
 
     # Optimizer args
@@ -352,7 +419,7 @@ if __name__ == "__main__":
         " Decrease learning rate after Validation loss plateaus.",
     )
     opt_args.add_argument(
-        "--opt_patience", type=int, default=10, help="Patience for LR routines."
+        "--opt_patience", type=int, default=4, help="Patience for LR routines."
     )
     opt_args.add_argument(
         "--opt_min_delta",
@@ -390,15 +457,13 @@ if __name__ == "__main__":
         help="Scale for sq_chi_loss weight vs angle_norm.",
     )
 
+    parser.add_argument("--is_sweep", type=my_bool, default=False, help="Is this a sweep?")
+
     # Add all the available trainer options to argparse
     parser = pl.Trainer.add_argparse_args(parser)
 
     args = parser.parse_args()
 
-    args.output_dir = os.path.join(args.output_dir, args.experiment_name)
-
-    # If output_dir does not exist, create it
-    if not os.path.exists(args.output_dir):
-        os.makedirs(args.output_dir)
+    args.replace_sampler_ddp = False if args.replace_sampler_ddp == "False" else True
 
     main(args)
