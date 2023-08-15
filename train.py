@@ -16,6 +16,7 @@ sys.path.insert(0, "/net/pulsar/home/koes/jok120/openfold/")
 
 from openfold.config import config
 from openfold.utils.loss import supervised_chi_loss
+from openfold.model.structure_module import AngleResnet
 from sidechainnet.examples.optim import NoamOpt
 
 from data import ATFileDataset, collate_fn
@@ -59,19 +60,17 @@ class ATModuleLit(pl.LightningModule):
         self.num_workers = num_workers
 
         # Optimizer
-        self.opt_lr = kwargs.get("opt_lr")  # , 1e-3)
-        self.opt_lr_scheduling = kwargs.get("opt_lr_scheduling")  # , "none")
-        self.opt_name = kwargs.get("opt_name")  # , "adamw")
-        self.opt_n_warmup_steps = kwargs.get("opt_n_warmup_steps")  # , 1000)
-        self.opt_noam_lr_factor = kwargs.get("opt_noam_lr_factor")  # , 1)
-        self.opt_weight_decay = kwargs.get("opt_weight_decay")  # , None)
-        self.opt_patience = kwargs.get("opt_patience")  # , None)
-        self.opt_min_delta = kwargs.get("opt_min_delta")  # , 1e-4)
-        self.opt_lr_scheduling_metric = kwargs.get(
-            "opt_lr_scheduling_metric"
-        )  # , "val/loss")
+        self.opt_lr = kwargs.get("opt_lr")
+        self.opt_lr_scheduling = kwargs.get("opt_lr_scheduling")
+        self.opt_name = kwargs.get("opt_name")
+        self.opt_n_warmup_steps = kwargs.get("opt_n_warmup_steps")
+        self.opt_noam_lr_factor = kwargs.get("opt_noam_lr_factor")
+        self.opt_weight_decay = kwargs.get("opt_weight_decay")
+        self.opt_patience = kwargs.get("opt_patience")
+        self.opt_min_delta = kwargs.get("opt_min_delta")
+        self.opt_lr_scheduling_metric = kwargs.get("opt_lr_scheduling_metric")
 
-        self.chi_weight = kwargs.get("chi_weight")  # , 1.0)
+        self.chi_weight = kwargs.get("chi_weight")
 
     def forward(self, s, s_initial):
         return self.at(s, s_initial)
@@ -223,6 +222,38 @@ class ATModuleLit(pl.LightningModule):
         )
 
 
+class AngleResnetLit(ATModuleLit):
+    """An implementation of the baseline AlphaFold2 AngleResnet for Pytorch Lightning."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        self.at = AngleResnet(
+            c_in=config.model.structure_module.c_s,
+            c_hidden=config.model.structure_module.c_resnet,
+            no_blocks=config.model.structure_module.no_resnet_blocks,
+            no_angles=config.model.structure_module.no_angles,
+            epsilon=config.model.structure_module.epsilon,
+        )
+
+        # Load the associated weights
+        print("Loading Resnet weights...", end=" ")
+        sd = torch.load(
+            "/net/pulsar/home/koes/jok120/openfold/openfold/resources/openfold_params/finetuning_5.pt"
+        )
+        sd = {"model." + k: v for k, v in sd.items()}
+        new_sd = {
+            k.replace("model.structure_module.angle_resnet.", ""): v
+            for k, v in sd.items()
+            if "model.structure_module.angle_resnet" in k
+        }
+
+        missing, unexpected = self.at.load_state_dict(new_sd, strict=True)
+        print("done.")
+        if missing:
+            print("Missing keys:", missing)
+
+
 def main(args):
     if args.is_sweep:
         default_config = {
@@ -232,15 +263,14 @@ def main(args):
             "num_workers": 6,
             "wandb_tags": "sweep",
             "batch_size": 1,
-            # "gpus": 1,
-            "val_check_interval": 2500
+            "val_check_interval": 2500,
         }
         # Update values from default config
         for k, v in default_config.items():
             setattr(args, k, v)
-        
 
         if "SLURM_JOB_ID" in os.environ:
+
             def status_printer(self, file):
                 """
                 Manage the printing and in-place updating of a line of characters.
@@ -249,10 +279,10 @@ def main(args):
                 """
                 self._status_printer_counter = 0
                 fp = file
-                fp_flush = getattr(fp, 'flush', lambda: None)  # pragma: no cover
+                fp_flush = getattr(fp, "flush", lambda: None)  # pragma: no cover
                 if fp in (sys.stderr, sys.stdout):
-                    getattr(sys.stderr, 'flush', lambda: None)()
-                    getattr(sys.stdout, 'flush', lambda: None)()
+                    getattr(sys.stderr, "flush", lambda: None)()
+                    getattr(sys.stdout, "flush", lambda: None)()
 
                 def fp_write(s):
                     fp.write(_unicode(s))
@@ -264,23 +294,28 @@ def main(args):
                     self._status_printer_counter += 1
                     if self._status_printer_counter % 100 == 0:
                         len_s = disp_len(s)
-                        fp_write(s + (' ' * max(last_len[0] - len_s, 0)) + '\n')
+                        fp_write(s + (" " * max(last_len[0] - len_s, 0)) + "\n")
                         last_len[0] = len_s
 
                 return print_status
+
             tqdm.status_printer = status_printer
 
-        # args.val_check_interval = default_config["val_check_interval"]
-        # args.gpus = default_config["gpus"]
-        # args = argparse.Namespace(**default_config)
-        # args.update(default_config)
     else:
         default_config = None
 
     # Create model
-    model = ATModuleLit(
-        train_dataset_dir=args.train_data, val_dataset_dir=args.val_data, **vars(args)
-    )
+    if args.use_resnet_baseline:
+        print("Using Resnet baseline instead.")
+        model = AngleResnetLit(
+            train_dataset_dir=args.train_data,
+            val_dataset_dir=args.val_data,
+            **vars(args),
+        )
+    else:
+        model = ATModuleLit(
+            train_dataset_dir=args.train_data, val_dataset_dir=args.val_data, **vars(args)
+        )
 
     my_callbacks = []
 
@@ -321,10 +356,11 @@ def main(args):
     except AttributeError as e:
         pass
 
-    args.experiment_name = wandb_logger.experiment.name
+    if args.is_sweep:
+        args.experiment_name = wandb_logger.experiment.name
 
     args.output_dir = os.path.join(args.output_dir, args.experiment_name)
-        # If output_dir does not exist, create it
+    # If output_dir does not exist, create it
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
 
@@ -345,9 +381,11 @@ def main(args):
 
 
 if __name__ == "__main__":
+
     def my_bool(s):
         """Allow bools instead of using pos/neg flags."""
-        return s != 'False'
+        return s != "False"
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--train_data",
@@ -364,7 +402,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--experiment_name", type=str, required=False, help="Name of experiment."
     )
-    parser.add_argument("--output_dir", type=str, required=False, help="Output directory.")
+    parser.add_argument(
+        "--output_dir", type=str, required=False, help="Output directory."
+    )
 
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size.")
     parser.add_argument(
@@ -377,6 +417,9 @@ if __name__ == "__main__":
         type=str,
         default="",
         help="Comma-separated list of tags for wandb.",
+    )
+    parser.add_argument(
+        "--use_resnet_baseline", type=my_bool, default=False, help="Use ResNet baseline?"
     )
 
     # Implement args for c_hidden, no_blocks, no_angles, epsilon, dropout=0.1, d_ff=2048, no_heads=4, activation='relu'
@@ -396,7 +439,11 @@ if __name__ == "__main__":
         "--no_heads", type=int, default=4, help="Number of heads for transformer."
     )
     parser.add_argument(
-        "--activation", type=str, choices=['relu', 'gelu'], default="relu", help="Activation for transformer."
+        "--activation",
+        type=str,
+        choices=["relu", "gelu"],
+        default="relu",
+        help="Activation for transformer.",
     )
 
     # Optimizer args
@@ -457,7 +504,9 @@ if __name__ == "__main__":
         help="Scale for sq_chi_loss weight vs angle_norm.",
     )
 
-    parser.add_argument("--is_sweep", type=my_bool, default=False, help="Is this a sweep?")
+    parser.add_argument(
+        "--is_sweep", type=my_bool, default=False, help="Is this a sweep?"
+    )
 
     # Add all the available trainer options to argparse
     parser = pl.Trainer.add_argparse_args(parser)
