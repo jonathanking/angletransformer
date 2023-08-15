@@ -229,7 +229,7 @@ def main(args):
             "train_data": "data/train/",
             "val_data": "data/val/",
             "output_dir": "out/sweeps/sweep00",
-            "num_workers": 8,
+            "num_workers": 6,
             "wandb_tags": "sweep",
             "batch_size": 1,
             # "gpus": 1,
@@ -419,7 +419,7 @@ if __name__ == "__main__":
         " Decrease learning rate after Validation loss plateaus.",
     )
     opt_args.add_argument(
-        "--opt_patience", type=int, default=4, help="Patience for LR routines."
+        "--opt_patience", type=int, default=10, help="Patience for LR routines."
     )
     opt_args.add_argument(
         "--opt_min_delta",

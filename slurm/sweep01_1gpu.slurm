@@ -15,4 +15,4 @@ module load cuda/11.5
 
 cd ~/angletransformer
 
-wandb agent --count 1 koes-group/angletransformer_solo01/p9ojkmzt
+wandb agent --count 1 koes-group/angletransformer_solo01/5ijrr6sf
