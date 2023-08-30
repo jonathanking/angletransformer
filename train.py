@@ -331,25 +331,39 @@ def main(args):
     # Early stopping callback,
     early_stopping_callback = pl.callbacks.EarlyStopping(
         monitor="val/loss",
-        patience=args.opt_patience,
+        patience=args.opt_patience*2,
         mode="min",
         verbose=True,
     )
     my_callbacks.append(early_stopping_callback)
 
     # Create wandb logger
-    wandb_logger = pl.loggers.WandbLogger(
-        # name=args.experiment_name,
-        save_dir=args.output_dir,
-        project="angletransformer_solo01",
-        notes=args.wandb_notes,
-        tags=[tag for tag in args.wandb_tags.split(",") if tag]
-        if args.wandb_tags
-        else None,
-        # group=args.experiment_name if args.experiment_name else "default_group",
-        config=default_config,
-        **{"entity": "koes-group"},
-    )
+    if not args.is_sweep:
+        wandb_logger = pl.loggers.WandbLogger(
+            name=args.experiment_name,
+            save_dir=args.output_dir,
+            project="angletransformer_solo01",
+            notes=args.wandb_notes,
+            tags=[tag for tag in args.wandb_tags.split(",") if tag]
+            if args.wandb_tags
+            else None,
+            # group=args.experiment_name if args.experiment_name else "default_group",
+            config=default_config,
+            **{"entity": "koes-group"},
+        )
+    else:
+        wandb_logger = pl.loggers.WandbLogger(
+            # name=args.experiment_name,
+            save_dir=args.output_dir,
+            project="angletransformer_solo01",
+            notes=args.wandb_notes,
+            tags=[tag for tag in args.wandb_tags.split(",") if tag]
+            if args.wandb_tags
+            else None,
+            # group=args.experiment_name if args.experiment_name else "default_group",
+            config=default_config,
+            **{"entity": "koes-group"},
+        )
     # MOD-JK: save config to wandb, log gradients/params
     try:
         wandb_logger.experiment.config.update(vars(args), allow_val_change=True)
