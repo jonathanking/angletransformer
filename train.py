@@ -258,7 +258,7 @@ def main(args):
         for k, v in default_config.items():
             setattr(args, k, v)
 
-        if "SLURM_JOB_ID" in os.environ:
+        if args.disable_tqdm_pbar:
 
             def status_printer(self, file):
                 """
@@ -424,6 +424,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--use_resnet_baseline", type=my_bool, default=False, help="Use ResNet baseline?"
     )
+    parser.add_argument("--disable_tqdm_pbar", type=my_bool, default=True,
+                        help="Disable tqdm progress bar? Helpful for remote jobs.")
 
     # Implement args for c_hidden, no_blocks, no_angles, epsilon, dropout=0.1, d_ff=2048, no_heads=4, activation='relu'
     parser.add_argument(
