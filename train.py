@@ -19,8 +19,8 @@ from openfold.utils.loss import supervised_chi_loss
 from openfold.model.structure_module import AngleResnet
 from sidechainnet.examples.optim import NoamOpt
 
-from data import ATFileDataset, collate_fn
-from model import AngleTransformer
+from angletransformer.data import ATFileDataset, collate_fn
+from angletransformer.model import AngleTransformer
 
 
 class ATModuleLit(pl.LightningModule):
