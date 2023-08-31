@@ -91,23 +91,10 @@ class ATModuleLit(pl.LightningModule):
         )
         mode = "train" if self.training else "val"
         on_step = mode == "train"
-        self.log(
-            f"{mode}/loss",
-            loss["loss"],
-            batch_size=self.batch_size,
-            on_epoch=True,
-            on_step=on_step,
-        )
-        self.log(
-            f"{mode}/sq_chi_loss",
-            loss["sq_chi_loss"],
-            batch_size=self.batch_size,
-            on_epoch=True,
-            on_step=on_step,
-        )
-        self.log(
-            f"{mode}/angle_norm_loss",
-            loss["angle_norm_loss"],
+        for loss_key in loss.keys():
+            self.log(
+            f"{mode}/{loss_key}",
+            loss[loss_key],
             batch_size=self.batch_size,
             on_epoch=True,
             on_step=on_step,
@@ -321,7 +308,7 @@ def main(args):
 
     # Create checkpoint callback
     checkpoint_callback = pl.callbacks.ModelCheckpoint(
-        monitor="val/loss",
+        monitor=args.opt_lr_scheduling_metric,
         filename="at-{epoch:02d}",
         save_top_k=1,
         mode="min",
@@ -330,8 +317,8 @@ def main(args):
 
     # Early stopping callback,
     early_stopping_callback = pl.callbacks.EarlyStopping(
-        monitor="val/loss",
-        patience=args.opt_patience*2,
+        monitor=args.opt_lr_scheduling_metric,
+        patience=args.opt_patience*3,
         mode="min",
         verbose=True,
     )
