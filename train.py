@@ -91,10 +91,12 @@ class ATModuleLit(pl.LightningModule):
         )
         mode = "train" if self.training else "val"
         on_step = mode == "train"
-        for loss_key in loss.keys():
+        for loss_key, value in loss.items():
+            if loss_key != "loss" and torch.isnan(value):
+                continue
             self.log(
             f"{mode}/{loss_key}",
-            loss[loss_key],
+            value,
             batch_size=self.batch_size,
             on_epoch=True,
             on_step=on_step,
