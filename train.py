@@ -450,6 +450,7 @@ if __name__ == "__main__":
         default="relu",
         help="Activation for transformer.",
     )
+    parser.add_argument("--seed", type=int, default=0, help="Random seed.")
 
     # Optimizer args
     opt_args = parser.add_argument_group("Optimizer args")
@@ -519,5 +520,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     args.replace_sampler_ddp = False if args.replace_sampler_ddp == "False" else True
+
+    from pytorch_lightning import seed_everything
+    seed_everything(args.seed)
 
     main(args)
