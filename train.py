@@ -52,6 +52,7 @@ class ATModuleLit(pl.LightningModule):
             d_ff=d_ff,
             no_heads=no_heads,
             activation=activation,
+            conv_encoder=kwargs.get("conv_encoder"),
         )
         self.loss = supervised_chi_loss
         self.train_dataset_dir = train_dataset_dir
@@ -246,9 +247,9 @@ class AngleResnetLit(ATModuleLit):
 def main(args):
     if args.is_sweep:
         default_config = {
-            "train_data": "data/train/",
-            "val_data": "data/val/",
-            "output_dir": "out/sweeps/sweep00",
+            "train_data": "/scr/jok120/angletransformer/data/train/",
+            "val_data": "/scr/jok120/angletransformer/data/val/",
+            "output_dir": "out/sweeps/sweep03",
             "num_workers": 6,
             "wandb_tags": "sweep",
             "batch_size": 1,
@@ -305,6 +306,10 @@ def main(args):
         model = ATModuleLit(
             train_dataset_dir=args.train_data, val_dataset_dir=args.val_data, **vars(args)
         )
+
+    if args.checkpoint is not None:
+        print("Loading checkpoint:", args.checkpoint)
+        model.load_state_dict(torch.load(args.checkpoint)["state_dict"])
 
     my_callbacks = []
 
@@ -513,6 +518,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--is_sweep", type=my_bool, default=False, help="Is this a sweep?"
     )
+
+    parser.add_argument("--conv_encoder", type=my_bool, default=False, help="Use conv encoder?")
+
+    parser.add_argument("--checkpoint", type=str, default=None, help="Checkpoint path.")
 
     # Add all the available trainer options to argparse
     parser = pl.Trainer.add_argparse_args(parser)
