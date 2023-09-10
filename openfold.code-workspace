@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "../openfold"
+		},
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"workspace.isHidden": true
+	}
+}

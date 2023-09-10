@@ -30,9 +30,49 @@
                 "env": {
                     "CUDA_LAUNCH_BLOCKING": "1",
                     // "CUDA_VISIBLE_DEVICES": "2",
-                    // "WANDB_MODE": "offline",
+                    "WANDB_MODE": "offline",
                     "CUDA_HOME": "/opt/cuda-11.5",
                 }
-            }
+            },
+            {
+                "name": "ATdebug",
+                "type": "python",
+                "request": "launch",
+                "program": "/net/pulsar/home/koes/jok120/angletransformer/train.py",
+                "console": "integratedTerminal",
+                "justMyCode": true,
+                "args": [
+                    "--activation=gelu",
+                    "--c_hidden=2048",
+                    "--chi_weight=0.05",
+                    "--d_ff=256",
+                    "--dropout=0.15",
+                    "--is_sweep=False",
+                    "--no_blocks=4",
+                    "--no_heads=2",
+                    "--opt_lr=0.0001",
+                    "--opt_lr_scheduling=plateau",
+                    "--opt_lr_scheduling_metric=val/sq_chi_loss",
+                    "--opt_n_warmup_steps=10000",
+                    "--opt_name=adam",
+                    "--opt_noam_lr_factor=2",
+                    "--replace_sampler_ddp=False",
+                    "--train_data=data/train/",
+                    "--val_data=data/val/",
+                    "--output_dir=out/experiments",
+                    "--num_workers=1",
+                    "--wandb_tags='debug'",
+                    "--batch_size=1",
+                    "--val_check_interval=2500",
+                    "--experiment_name='debug-loss-00'",
+                    "--gpus=1",
+                    ],
+                    "env": {
+                        "CUDA_LAUNCH_BLOCKING": "1",
+                        // "CUDA_VISIBLE_DEVICES": "2",
+                        "WANDB_MODE": "disabled",
+                        "CUDA_HOME": "/opt/cuda-11.5",
+                    }
+                }
         ]
 }
