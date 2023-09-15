@@ -230,22 +230,23 @@ class AngleResnetLit(ATModuleLit):
             conv_encoder=kwargs.get("run_resnet_with_conv_encoder"),
         )
 
-        # Load the associated weights
-        print("Loading Resnet weights...", end=" ")
-        sd = torch.load(
-            "/net/pulsar/home/koes/jok120/openfold/openfold/resources/openfold_params/finetuning_5.pt"
-        )
-        sd = {"model." + k: v for k, v in sd.items()}
-        new_sd = {
-            k.replace("model.structure_module.angle_resnet.", ""): v
-            for k, v in sd.items()
-            if "model.structure_module.angle_resnet" in k
-        }
+        if not kwargs.get("skip_loading_resnet_weights"):
+            # Load the associated weights
+            print("Loading Resnet weights...", end=" ")
+            sd = torch.load(
+                "/net/pulsar/home/koes/jok120/openfold/openfold/resources/openfold_params/finetuning_5.pt"
+            )
+            sd = {"model." + k: v for k, v in sd.items()}
+            new_sd = {
+                k.replace("model.structure_module.angle_resnet.", ""): v
+                for k, v in sd.items()
+                if "model.structure_module.angle_resnet" in k
+            }
 
-        missing, unexpected = self.at.load_state_dict(new_sd, strict=not kwargs.get("run_resnet_with_conv_encoder"))
-        print("done.")
-        if missing:
-            print("Missing keys:", missing)
+            missing, unexpected = self.at.load_state_dict(new_sd, strict=not kwargs.get("run_resnet_with_conv_encoder"))
+            print("done.")
+            if missing:
+                print("Missing keys:", missing)
 
 
 def main(args):
@@ -529,6 +530,8 @@ if __name__ == "__main__":
 
     parser.add_argument("--run_resnet_with_conv_encoder", type=my_bool, default=False, 
         help="Run resnet with conv encoder?")
+    parser.add_argument("--skip_loading_resnet_weights", type=my_bool, default=False,
+        help="Skip loading resnet weights?")
 
 
     # Add all the available trainer options to argparse
