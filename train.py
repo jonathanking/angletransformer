@@ -218,12 +218,16 @@ class AngleResnetLit(ATModuleLit):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+        if kwargs.get("run_resnet_with_conv_encoder"):
+            print("Running baseline Resnet with conv encoder.")
+
         self.at = AngleResnet(
             c_in=config.model.structure_module.c_s,
             c_hidden=config.model.structure_module.c_resnet,
             no_blocks=config.model.structure_module.no_resnet_blocks,
             no_angles=config.model.structure_module.no_angles,
             epsilon=config.model.structure_module.epsilon,
+            conv_encoder=kwargs.get("run_resnet_with_conv_encoder"),
         )
 
         # Load the associated weights
@@ -238,7 +242,7 @@ class AngleResnetLit(ATModuleLit):
             if "model.structure_module.angle_resnet" in k
         }
 
-        missing, unexpected = self.at.load_state_dict(new_sd, strict=True)
+        missing, unexpected = self.at.load_state_dict(new_sd, strict=not kwargs.get("run_resnet_with_conv_encoder"))
         print("done.")
         if missing:
             print("Missing keys:", missing)
@@ -522,6 +526,10 @@ if __name__ == "__main__":
     parser.add_argument("--conv_encoder", type=my_bool, default=False, help="Use conv encoder?")
 
     parser.add_argument("--checkpoint", type=str, default=None, help="Checkpoint path.")
+
+    parser.add_argument("--run_resnet_with_conv_encoder", type=my_bool, default=False, 
+        help="Run resnet with conv encoder?")
+
 
     # Add all the available trainer options to argparse
     parser = pl.Trainer.add_argparse_args(parser)
