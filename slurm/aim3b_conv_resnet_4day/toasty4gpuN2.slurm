@@ -59,7 +59,7 @@ python train.py \
     --val_check_interval=2500 \
     --experiment_name="toastyRN2" \
     --opt_patience=20 \
-    --run_resnet_with_conv_encoder=True \
+    --run_resnet_with_conv_encoder=False \
     --skip_loading_resnet_weights=True \
     --use_resnet_baseline=True \
     --conv_encoder=False \
