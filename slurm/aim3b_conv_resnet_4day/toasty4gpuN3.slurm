@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=RtoastN3
+#SBATCH --job-name=sRtoastN3
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:4
 #SBATCH --time=4-00:00:00
