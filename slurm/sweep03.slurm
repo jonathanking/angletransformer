@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=swp2
+#SBATCH --job-name=swp3
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:4
 #SBATCH --time=28-00:00:00

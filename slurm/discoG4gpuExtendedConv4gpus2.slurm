@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=swp3-2g
+#SBATCH --job-name=discoGEs2
 #SBATCH --nodes=1
-#SBATCH --gres=gpu:2
+#SBATCH --gres=gpu:4
 #SBATCH --time=28-00:00:00
 #SBATCH --partition=dept_gpu
 #SBATCH --output="out/%A_%6a.out"
@@ -13,11 +13,6 @@ cd ~/openfold
 source scripts/activate_conda_env.sh
 module load cuda/11.5
 
-cd ~/angletransformer
-
-# Check if /scr/jok120/angletransformer/ exists AND if the placeholder file is there
-# If /scr/jok120/angletransformer/ exists and the placeholder is NOT there, then remove files that shouldn't be there
-# If the placeholder file is there, alert the user and continue
 
 if [ ! -d /scr/jok120/angletransformer/ ]; then
     echo "The directory /scr/jok120/angletransformer/ does not exist"
@@ -35,10 +30,33 @@ else
     fi
 fi
 
-echo "Copying data to local scr drive, /scr/jok120/angletransformer/data/"
-mkdir -p /scr/jok120/angletransformer/data/
-# rsync -azL --timeout=180 --info=progress2 ~/angletransformer/data/ /scr/jok120/angletransformer/data/
-rsync -azL --timeout=180 --info=progress2 ~/angletransformer/data/val/ /scr/jok120/angletransformer/data/val/ &
-rsync -azL --timeout=180 --info=progress2 ~/angletransformer/data/train/ /scr/jok120/angletransformer/data/train/
+cd ~/angletransformer
 
-wandb agent --count 1 koes-group/angletransformer_solo01/dztax6io
+python train.py \
+    --activation=gelu \
+    --c_hidden=2048 \
+    --chi_weight=0.05 \
+    --d_ff=256 \
+    --dropout=0.15 \
+    --is_sweep=False \
+    --no_blocks=4 \
+    --no_heads=2 \
+    --opt_lr=0.0001 \
+    --opt_lr_scheduling=plateau \
+    --opt_lr_scheduling_metric=val/angle_mae \
+    --opt_n_warmup_steps=10000 \
+    --opt_name=adam \
+    --opt_noam_lr_factor=2 \
+    --replace_sampler_ddp=True \
+    --train_data=data/train/ \
+    --val_data=data/val/ \
+    --output_dir=out/experiments \
+    --num_workers=6 \
+    --wandb_tags="sweep" \
+    --batch_size=1 \
+    --val_check_interval=2500 \
+    --experiment_name="sunny-disco-172-g4gpu-extended2-conv-4gpu" \
+    --opt_patience=20 \
+    --seed=2 \
+    --conv_encoder=True
+
