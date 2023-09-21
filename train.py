@@ -259,45 +259,47 @@ def main(args):
             "wandb_tags": "sweep",
             "batch_size": 1,
             "val_check_interval": 2500,
+            # "conv_encoder": False,
         }
         # Update values from default config
         for k, v in default_config.items():
+            if k == "conv_encoder":
+                print("Setting conv_encoder to", v)
             setattr(args, k, v)
-
-        if args.disable_tqdm_pbar:
-
-            def status_printer(self, file):
-                """
-                Manage the printing and in-place updating of a line of characters.
-                Note that if the string is longer than a line, then in-place
-                updating may not work (it will print a new line at each refresh).
-                """
-                self._status_printer_counter = 0
-                fp = file
-                fp_flush = getattr(fp, "flush", lambda: None)  # pragma: no cover
-                if fp in (sys.stderr, sys.stdout):
-                    getattr(sys.stderr, "flush", lambda: None)()
-                    getattr(sys.stdout, "flush", lambda: None)()
-
-                def fp_write(s):
-                    fp.write(_unicode(s))
-                    fp_flush()
-
-                last_len = [0]
-
-                def print_status(s):
-                    self._status_printer_counter += 1
-                    if self._status_printer_counter % 100 == 0:
-                        len_s = disp_len(s)
-                        fp_write(s + (" " * max(last_len[0] - len_s, 0)) + "\n")
-                        last_len[0] = len_s
-
-                return print_status
-
-            tqdm.status_printer = status_printer
-
     else:
         default_config = None
+    
+    if args.disable_tqdm_pbar:
+
+        def status_printer(self, file):
+            """
+            Manage the printing and in-place updating of a line of characters.
+            Note that if the string is longer than a line, then in-place
+            updating may not work (it will print a new line at each refresh).
+            """
+            self._status_printer_counter = 0
+            fp = file
+            fp_flush = getattr(fp, "flush", lambda: None)  # pragma: no cover
+            if fp in (sys.stderr, sys.stdout):
+                getattr(sys.stderr, "flush", lambda: None)()
+                getattr(sys.stdout, "flush", lambda: None)()
+
+            def fp_write(s):
+                fp.write(_unicode(s))
+                fp_flush()
+
+            last_len = [0]
+
+            def print_status(s):
+                self._status_printer_counter += 1
+                if self._status_printer_counter % 100 == 0:
+                    len_s = disp_len(s)
+                    fp_write(s + (" " * max(last_len[0] - len_s, 0)) + "\n")
+                    last_len[0] = len_s
+
+            return print_status
+
+        tqdm.status_printer = status_printer
 
     # Create model
     if args.use_resnet_baseline:
@@ -397,7 +399,7 @@ if __name__ == "__main__":
 
     def my_bool(s):
         """Allow bools instead of using pos/neg flags."""
-        return s != "False"
+        return s == "True" or s == "true"
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -482,7 +484,7 @@ if __name__ == "__main__":
         " Decrease learning rate after Validation loss plateaus.",
     )
     opt_args.add_argument(
-        "--opt_patience", type=int, default=10, help="Patience for LR routines."
+        "--opt_patience", type=int, default=5, help="Patience for LR routines."
     )
     opt_args.add_argument(
         "--opt_min_delta",

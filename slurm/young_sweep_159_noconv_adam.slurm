@@ -1,11 +1,11 @@
 #!/bin/bash
-#SBATCH --job-name=toastC1
+#SBATCH --job-name=youngAdamW
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:4
-#SBATCH --time=28-00:00:00
+#SBATCH --time=6-00:00:00
 #SBATCH --partition=dept_gpu
 #SBATCH --output="out/%A_%6a.out"
-#SBATCH --ntasks-per-node=24
+#SBATCH --ntasks-per-node=32
 #SBATCH --exclude=g019
 
 # Setup
@@ -30,36 +30,33 @@ else
     fi
 fi
 
-rsync -azL --timeout=180 --info=progress2 ~/angletransformer/data/val/ /scr/jok120/angletransformer/data/val/ &
-rsync -azL --timeout=180 --info=progress2 ~/angletransformer/data/train/ /scr/jok120/angletransformer/data/train/
-
 cd ~/angletransformer
 
 python train.py \
     --activation=gelu \
-    --c_hidden=64 \
-    --chi_weight=13.012551860064766 \
-    --d_ff=1024 \
-    --dropout=0.018609913167811645 \
+    --c_hidden=128 \
+    --chi_weight=8.720481984584808 \
+    --d_ff=512 \
+    --dropout=0.09362803755294724 \
     --is_sweep=False \
     --no_blocks=42 \
-    --no_heads=1 \
-    --opt_lr=0.00037082862954881073 \
+    --no_heads=2 \
+    --opt_lr=0.001 \
     --opt_lr_scheduling=plateau \
     --opt_lr_scheduling_metric=val/angle_mae \
-    --opt_n_warmup_steps=10000 \
+    --opt_n_warmup_steps=1000 \
     --opt_name=adamw \
-    --opt_noam_lr_factor=1.925 \
+    --opt_noam_lr_factor=1 \
     --replace_sampler_ddp=True \
-    --train_data=data/train/ \
-    --val_data=data/val/ \
-    --output_dir=out/experiments/ \
-    --num_workers=5 \
-    --wandb_tags="aim3b,toastyconv" \
+    --train_data=/scr/jok120/angletransformer/data/train/ \
+    --val_data=/scr/jok120/angletransformer/data/val/ \
+    --output_dir=out/experiments \
+    --num_workers=6 \
+    --wandb_tags="sweep" \
     --batch_size=1 \
     --val_check_interval=2500 \
-    --experiment_name="sunny-disco-172-g4gpu-extended3-conv-4gpu" \
+    --experiment_name="young-sweep-159-noconv-adameW" \
     --opt_patience=20 \
-    --conv_encoder=True \
-    --seed=1 \
+    --seed=0 \
+    --conv_encoder=False
 

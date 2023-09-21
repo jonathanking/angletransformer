@@ -1,11 +1,11 @@
 #!/bin/bash
-#SBATCH --job-name=toastC1
+#SBATCH --job-name=swp4.2
 #SBATCH --nodes=1
-#SBATCH --gres=gpu:4
+#SBATCH --gres=gpu:2
 #SBATCH --time=28-00:00:00
 #SBATCH --partition=dept_gpu
 #SBATCH --output="out/%A_%6a.out"
-#SBATCH --ntasks-per-node=24
+#SBATCH --ntasks-per-node=12
 #SBATCH --exclude=g019
 
 # Setup
@@ -13,6 +13,11 @@ cd ~/openfold
 source scripts/activate_conda_env.sh
 module load cuda/11.5
 
+cd ~/angletransformer
+
+# Check if /scr/jok120/angletransformer/ exists AND if the placeholder file is there
+# If /scr/jok120/angletransformer/ exists and the placeholder is NOT there, then remove files that shouldn't be there
+# If the placeholder file is there, alert the user and continue
 
 if [ ! -d /scr/jok120/angletransformer/ ]; then
     echo "The directory /scr/jok120/angletransformer/ does not exist"
@@ -30,36 +35,11 @@ else
     fi
 fi
 
+
+echo "Copying data to local scr drive, /scr/jok120/angletransformer/data/"
+mkdir -p /scr/jok120/angletransformer/data/
+# rsync -azL --timeout=180 --info=progress2 ~/angletransformer/data/ /scr/jok120/angletransformer/data/
 rsync -azL --timeout=180 --info=progress2 ~/angletransformer/data/val/ /scr/jok120/angletransformer/data/val/ &
 rsync -azL --timeout=180 --info=progress2 ~/angletransformer/data/train/ /scr/jok120/angletransformer/data/train/
 
-cd ~/angletransformer
-
-python train.py \
-    --activation=gelu \
-    --c_hidden=64 \
-    --chi_weight=13.012551860064766 \
-    --d_ff=1024 \
-    --dropout=0.018609913167811645 \
-    --is_sweep=False \
-    --no_blocks=42 \
-    --no_heads=1 \
-    --opt_lr=0.00037082862954881073 \
-    --opt_lr_scheduling=plateau \
-    --opt_lr_scheduling_metric=val/angle_mae \
-    --opt_n_warmup_steps=10000 \
-    --opt_name=adamw \
-    --opt_noam_lr_factor=1.925 \
-    --replace_sampler_ddp=True \
-    --train_data=data/train/ \
-    --val_data=data/val/ \
-    --output_dir=out/experiments/ \
-    --num_workers=5 \
-    --wandb_tags="aim3b,toastyconv" \
-    --batch_size=1 \
-    --val_check_interval=2500 \
-    --experiment_name="sunny-disco-172-g4gpu-extended3-conv-4gpu" \
-    --opt_patience=20 \
-    --conv_encoder=True \
-    --seed=1 \
-
+wandb agent --count 1 koes-group/angletransformer_solo01/chhqej17
