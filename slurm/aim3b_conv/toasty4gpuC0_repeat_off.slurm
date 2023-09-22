@@ -40,7 +40,7 @@ python train.py \
     --chi_weight=13.012551860064766 \
     --d_ff=1024 \
     --dropout=0.018609913167811645 \
-    --is_sweep=True \
+    --is_sweep=False \
     --no_blocks=42 \
     --no_heads=1 \
     --opt_lr=0.00037082862954881073 \
@@ -57,9 +57,9 @@ python train.py \
     --wandb_tags="aim3b,toastyconv" \
     --batch_size=1 \
     --val_check_interval=2500 \
-    --experiment_name="toastyC0_repeat_false" \
+    --experiment_name="toastyC0_repeat_false_SWA" \
     --opt_patience=10 \
     --conv_encoder=False \
     --seed=0 \
-    --stochastic_weight_avg="false" \
+    --stochastic_weight_avg=True
 

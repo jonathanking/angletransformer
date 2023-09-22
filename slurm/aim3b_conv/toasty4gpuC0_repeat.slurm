@@ -57,9 +57,9 @@ python train.py \
     --wandb_tags="aim3b,toastyconv" \
     --batch_size=1 \
     --val_check_interval=2500 \
-    --experiment_name="toastyC0_repeat" \
+    --experiment_name="toastyC0_repeat_SWA" \
     --opt_patience=10 \
     --conv_encoder=True \
     --seed=0 \
-    --stochastic_weight_avg="false" \
+    --stochastic_weight_avg=True \
 
